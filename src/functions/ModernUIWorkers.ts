@@ -295,24 +295,53 @@ export class ModernUIWorkers {
                     const anchor = card as HTMLAnchorElement
                     const fullText = anchor.textContent?.trim() || ''
 
-                    // Skip locked cards (Silver level required, etc.)
+                    // Skip completed cards
+                    if (fullText.includes('Completed')) return
+
+                    // Skip completed cards with checkmark badge
+                    if (anchor.querySelector('[class*="statusSuccessRewards"], [class*="StatusSuccess"]')) return
+
+                    // Skip locked cards (Silver level required, Gold level required, etc.)
                     if (fullText.includes('level required') || fullText.includes('locked')) return
 
-                    // Find points badge: +N pattern
+                    // === POINTS DETECTION: 2 methods ===
+
+                    // Method 1: Badge-style points (+5, +10, +15, +20)
                     let pointsText = ''
                     anchor.querySelectorAll('span, div, p').forEach(el => {
                         const text = el.textContent?.trim() || ''
                         if (/^\+\d+$/.test(text)) pointsText = text
                     })
 
-                    // Only earnable cards
+                    // Method 2: Description-style points ("earn 30 points", "pick up 20 points", "earn 100 points")
+                    if (!pointsText) {
+                        const descEl = anchor.querySelector('p[class*="Secondary"], p[class*="secondary"]')
+                        const descText = descEl?.textContent?.trim() || fullText
+                        const descMatch = descText.match(/(?:earn|pick\s*up|get|collect)\s+(\d+)\s+(?:bonus\s+)?(?:Rewards\s+)?points?/i)
+                        if (descMatch) {
+                            pointsText = `+${descMatch[1]}`
+                        }
+                    }
+
+                    // Method 3: Fallback - any "N points" pattern in description
+                    if (!pointsText) {
+                        const match = fullText.match(/(\d+)\s+points?\b/i)
+                        if (match && match[1] && parseInt(match[1]) > 0 && parseInt(match[1]) <= 500) {
+                            // Exclude "X lifetime points" patterns
+                            if (!fullText.includes('lifetime points')) {
+                                pointsText = `+${match[1]}`
+                            }
+                        }
+                    }
+
+                    // Skip cards with no detectable points
                     if (!pointsText) return
 
-                    // Title: p.text-globalBody2Strong or first meaningful text
+                    // Title: p.text-globalBody2Strong or first bold text
                     const titleEl = anchor.querySelector('p[class*="Body2Strong"], p[class*="body2Strong"]')
                     const title = titleEl?.textContent?.trim()?.substring(0, 60) || ''
 
-                    // Fallback title: get from the card's text, excluding points
+                    // Fallback title
                     const fallbackTitle = title || fullText.replace(pointsText, '').trim().substring(0, 60)
 
                     result.push({
