@@ -14,18 +14,17 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-:: Check if dist exists (compiled)
-if not exist "dist\index.js" (
-    echo [INFO] Building project...
-    call npm run build
-    if %errorlevel% neq 0 (
-        echo [ERROR] Build failed!
-        pause
-        exit /b 1
-    )
+:: Always rebuild before running
+echo [INFO] Building project...
+call npm run build
+if %errorlevel% neq 0 (
+    echo [ERROR] Build failed!
+    pause
+    exit /b 1
 )
 
 :: Run
+echo.
 echo [INFO] Starting bot...
 echo.
 node ./dist/index.js
