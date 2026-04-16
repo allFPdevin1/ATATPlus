@@ -449,9 +449,15 @@ export class MicrosoftRewardsBot {
                 )
 
                 if (this.config.workers.doAppPromotions) await this.workers.doAppPromotions(appData)
-                if (this.config.workers.doDailySet) await this.workers.doDailySet(data, this.mainMobilePage)
+
+                // Modern UI: Daily Set + Keep Earning run in desktop phase (mobile can't detect properly)
+                // Legacy UI: run as usual in mobile phase
+                if (this.rewardsVersion !== 'modern') {
+                    if (this.config.workers.doDailySet) await this.workers.doDailySet(data, this.mainMobilePage)
+                    if (this.config.workers.doMorePromotions) await this.workers.doMorePromotions(data, this.mainMobilePage)
+                }
+
                 if (this.config.workers.doSpecialPromotions) await this.workers.doSpecialPromotions(data)
-                if (this.config.workers.doMorePromotions) await this.workers.doMorePromotions(data, this.mainMobilePage)
                 if (this.config.workers.doDailyCheckIn) await this.activities.doDailyCheckIn()
                 if (this.config.workers.doReadToEarn) await this.activities.doReadToEarn()
                 if (this.config.workers.doPunchCards) await this.workers.doPunchCards(data, this.mainMobilePage)

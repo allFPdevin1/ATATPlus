@@ -90,6 +90,28 @@ export class SearchManager {
                     this.bot.logger.debug('main', 'SEARCH-MANAGER', `Mobile close stack: ${error.stack}`)
                 }
             }
+
+            // Even if no searches, run Modern UI tasks on desktop
+            if (this.bot.rewardsVersion === 'modern') {
+                this.bot.logger.info('main', 'SEARCH-MANAGER', 'Creating desktop session for Modern UI tasks only')
+                try {
+                    const desktopSession = await executionContext.run({ isMobile: false, account }, async () =>
+                        this.createDesktopSession(account, accountEmail)
+                    )
+                    await executionContext.run({ isMobile: false, account }, async () => {
+                        const data = await this.bot.browser.func.getDashboardData()
+                        await this.runModernUITasks(data)
+                        await this.bot.browser.func.closeBrowser(desktopSession.context, accountEmail)
+                    })
+                } catch (error) {
+                    this.bot.logger.error(
+                        'main',
+                        'SEARCH-MANAGER',
+                        `Modern UI desktop tasks failed: ${error instanceof Error ? error.message : String(error)}`
+                    )
+                }
+            }
+
             return { mobilePoints: 0, desktopPoints: 0 }
         }
 
@@ -391,6 +413,35 @@ export class SearchManager {
         return session
     }
 
+    /**
+     * Run Modern UI workers (Daily Set + Keep Earning) using desktop page.
+     * Called during desktop search phase because mobile browser can't detect the modern UI properly.
+     */
+    private async runModernUITasks(data: DashboardData): Promise<void> {
+        try {
+            this.bot.logger.info('main', 'MODERN-UI-DESKTOP', 'Running Modern UI tasks on desktop browser')
+
+            const { ModernUIWorkers } = await import('./ModernUIWorkers')
+            const modernWorkers = new ModernUIWorkers(this.bot)
+
+            if (this.bot.config.workers.doDailySet) {
+                await modernWorkers.doDailySet(this.bot.mainDesktopPage)
+            }
+
+            if (this.bot.config.workers.doMorePromotions) {
+                await modernWorkers.doKeepEarning(this.bot.mainDesktopPage)
+            }
+
+            this.bot.logger.info('main', 'MODERN-UI-DESKTOP', 'Modern UI tasks completed')
+        } catch (error) {
+            this.bot.logger.error(
+                'main',
+                'MODERN-UI-DESKTOP',
+                `Error: ${error instanceof Error ? error.message : String(error)}`
+            )
+        }
+    }
+
     private async doMobileSearch(
         data: DashboardData,
         missingSearchPoints: MissingSearchPoints,
@@ -482,6 +533,11 @@ export class SearchManager {
 
         return await executionContext.run({ isMobile: false, accountEmail }, async () => {
             try {
+                // Run Modern UI tasks on desktop (Daily Set + Keep Earning)
+                if (this.bot.rewardsVersion === 'modern') {
+                    await this.runModernUITasks(data)
+                }
+
                 this.bot.logger.info(
                     'main',
                     'SEARCH-DESKTOP-PARALLEL',
@@ -559,6 +615,11 @@ export class SearchManager {
             try {
                 this.bot.logger.info('main', 'SEARCH-DESKTOP-SEQUENTIAL', 'Init desktop session')
                 desktopSession = await this.createDesktopSession(account, accountEmail)
+
+                // Run Modern UI tasks on desktop (Daily Set + Keep Earning)
+                if (this.bot.rewardsVersion === 'modern') {
+                    await this.runModernUITasks(data)
+                }
 
                 this.bot.logger.info(
                     'main',
