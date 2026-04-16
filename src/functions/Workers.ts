@@ -17,6 +17,14 @@ export class Workers {
     }
 
     public async doDailySet(data: DashboardData, page: Page) {
+        // Modern UI: use dedicated ModernUIWorkers
+        if (this.bot.rewardsVersion === 'modern') {
+            const { ModernUIWorkers } = await import('./ModernUIWorkers')
+            const modernWorkers = new ModernUIWorkers(this.bot)
+            return modernWorkers.doDailySet(page)
+        }
+
+        // Legacy UI
         const todayKey = this.bot.utils.getFormattedDate()
         const todayData = data.dailySetPromotions[todayKey]
 
@@ -35,6 +43,14 @@ export class Workers {
     }
 
     public async doMorePromotions(data: DashboardData, page: Page) {
+        // Modern UI: "More Promotions" is now "Keep earning" on /earn page
+        if (this.bot.rewardsVersion === 'modern') {
+            const { ModernUIWorkers } = await import('./ModernUIWorkers')
+            const modernWorkers = new ModernUIWorkers(this.bot)
+            await modernWorkers.doKeepEarning(page)
+            return
+        }
+
         const morePromotions: BasePromotion[] = [
             ...new Map(
                 [...(data.morePromotions ?? []), ...(data.morePromotionsWithoutPromotionalItems ?? [])]

@@ -1,4 +1,4 @@
-import type { BrowserContext, Cookie } from 'patchright'
+import type { BrowserContext, Cookie, Page } from 'patchright'
 import type { AxiosRequestConfig } from 'axios'
 
 import type { MicrosoftRewardsBot } from '../index'
@@ -15,6 +15,54 @@ export default class BrowserFunc {
 
     constructor(bot: MicrosoftRewardsBot) {
         this.bot = bot
+    }
+
+    /**
+     * Detect if the account is using the modern card-based UI
+     * Checks for collapsible section buttons (react-aria Disclosure triggers)
+     * and the "Earn" tab in the navigation, which only exist on modern UI.
+     * @param page {Page} Playwright page object
+     */
+    async isModernUI(page: Page): Promise<boolean> {
+        try {
+            // Navigate to dashboard to check
+            const url = page.url()
+            if (!url.includes('rewards.bing.com')) {
+                await page.goto('https://rewards.bing.com/dashboard', {
+                    waitUntil: 'domcontentloaded',
+                    timeout: 15000
+                })
+                await this.bot.utils.wait(2000)
+            }
+
+            // Modern UI detection: check for collapsible sections with slot="trigger"
+            // or sections with aria-expanded buttons, or "Earn" nav link
+            const isModern = await page.evaluate(() => {
+                // Check 1: Buttons with slot="trigger" (react-aria Disclosure)
+                const triggerBtns = document.querySelectorAll('button[slot="trigger"]')
+                if (triggerBtns.length > 0) return true
+
+                // Check 2: Buttons with aria-expanded in section context
+                const sections = document.querySelectorAll('section')
+                for (const s of sections) {
+                    const h = s.querySelector('h2, h3')
+                    const btn = s.querySelector('button[aria-expanded]')
+                    if (h && btn && h.textContent?.trim()?.startsWith('Daily set')) return true
+                }
+
+                // Check 3: "Earn" link in nav (legacy uses "Earn more")
+                const navLinks = document.querySelectorAll('nav a, header a')
+                for (const link of navLinks) {
+                    if (link.textContent?.trim() === 'Earn') return true
+                }
+
+                return false
+            })
+
+            return isModern
+        } catch (error) {
+            return false
+        }
     }
 
     /**

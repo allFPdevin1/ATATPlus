@@ -408,6 +408,15 @@ export class MicrosoftRewardsBot {
                 this.cookies.mobile = await initialContext.cookies()
                 this.fingerprint = mobileSession.fingerprint
 
+                // Detect UI version
+                if (await this.browser.func.isModernUI(this.mainMobilePage)) {
+                    this.rewardsVersion = 'modern'
+                    this.logger.info('main', 'UI-DETECTION', 'Modern Microsoft Rewards UI detected.')
+                } else {
+                    this.rewardsVersion = 'legacy'
+                    this.logger.info('main', 'UI-DETECTION', 'Legacy Microsoft Rewards UI detected.')
+                }
+
                 const data: DashboardData = await this.browser.func.getDashboardData()
                 const appData: AppDashboardData = await this.browser.func.getAppDashboardData()
 

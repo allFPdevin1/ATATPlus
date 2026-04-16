@@ -1,0 +1,1 @@
+- Và anh yêu cầu sau mỗi lần chạy đều phải viết vào quá trình đã làm vào 1 file trong thư mục docs
