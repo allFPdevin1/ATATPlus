@@ -1,12 +1,14 @@
 # AutoRewardPlus
 
-> **Fork of [Microsoft-Rewards-Script](https://github.com/TheNetsky/Microsoft-Rewards-Script) with Modern UI support (April 2026+)**
-
-[![Latest Build](https://img.shields.io/github/actions/workflow/status/TheNetsky/Microsoft-Rewards-Script/auto-release.yml?branch=v3&style=for-the-badge&label=Latest%20Build)](https://github.com/TheNetsky/Microsoft-Rewards-Script/actions/workflows/auto-release.yml)
+> Based on [Microsoft-Rewards-Script](https://github.com/TheNetsky/Microsoft-Rewards-Script) — extended with Modern UI support (April 2026+)
 
 > [!NOTE]
-> This fork adds full support for the new Microsoft Rewards card-based UI (April 2026 rollout).
+> This fork adds support for the new Microsoft Rewards card-based UI (April 2026 rollout).
 > Both legacy and modern UI are auto-detected and handled automatically.
+
+> [!WARNING]
+> Modern UI tasks (Daily Set, Keep Earning) currently run on **desktop browser only**.
+> Mobile support for the new UI is not yet implemented.
 
 ---
 
