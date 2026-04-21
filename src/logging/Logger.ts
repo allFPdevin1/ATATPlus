@@ -45,6 +45,9 @@ function formatMessage(message: string | Error): string {
 }
 
 export class Logger {
+    public errorCount = 0
+    public warningCount = 0
+
     constructor(private bot: MicrosoftRewardsBot) {}
 
     info(isMobile: Platform, title: string, message: string, color?: ColorKey) {
@@ -83,6 +86,10 @@ export class Logger {
         if (level === 'debug' && !config.debugLogs && !process.argv.includes('-dev')) {
             return
         }
+
+        // Track error/warning counts for summary
+        if (level === 'error') this.errorCount++
+        if (level === 'warn') this.warningCount++
 
         const badge = platformBadge(isMobile)
         const consoleStr = `[${now}] [${userName}] [${levelTag}] ${badge} [${title}] ${formatted}`

@@ -21,7 +21,7 @@ import { SearchManager } from './functions/SearchManager'
 
 import type { Account } from './interface/Account'
 import AxiosClient from './util/Axios'
-import { sendDiscord, flushDiscordQueue } from './logging/Discord'
+import { sendDiscord, sendDiscordSummary, flushDiscordQueue } from './logging/Discord'
 import { sendNtfy, flushNtfyQueue } from './logging/Ntfy'
 import type { DashboardData } from './interface/DashboardData'
 import type { AppDashboardData } from './interface/AppDashBoardData'
@@ -228,6 +228,17 @@ export class MicrosoftRewardsBot {
                     'green'
                 )
 
+                // Send Discord summary embed
+                if (this.config.webhook.discord?.enabled && this.config.webhook.discord.url) {
+                    await sendDiscordSummary(
+                        this.config.webhook.discord.url,
+                        allAccountStats,
+                        totalDurationMinutes,
+                        this.logger.errorCount,
+                        this.logger.warningCount
+                    )
+                }
+
                 await flushAllWebhooks()
 
                 process.exit(hadWorkerFailure ? 1 : 0)
@@ -370,6 +381,17 @@ export class MicrosoftRewardsBot {
                 `Completed all accounts | Accounts processed: ${accountStats.length} | Total points collected: +${totalCollectedPoints} | Old total: ${totalInitialPoints} → New total: ${totalFinalPoints} | Total runtime: ${totalDurationMinutes}min`,
                 'green'
             )
+
+            // Send Discord summary embed
+            if (this.config.webhook.discord?.enabled && this.config.webhook.discord.url) {
+                await sendDiscordSummary(
+                    this.config.webhook.discord.url,
+                    accountStats,
+                    totalDurationMinutes,
+                    this.logger.errorCount,
+                    this.logger.warningCount
+                )
+            }
 
             await flushAllWebhooks()
             process.exit(0)
