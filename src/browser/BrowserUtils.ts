@@ -1,8 +1,11 @@
 import { type Page, type BrowserContext } from 'patchright'
+
 import { CheerioAPI, load } from 'cheerio'
+
 import { ClickOptions, createCursor } from 'ghost-cursor-playwright-port'
 
 import type { MicrosoftRewardsBot } from '../index'
+import { errMsg } from '../util/Utils'
 
 export default class BrowserUtils {
     private bot: MicrosoftRewardsBot
@@ -81,11 +84,7 @@ export default class BrowserUtils {
                 await this.bot.utils.wait(250)
             }
         } catch (error) {
-            this.bot.logger.warn(
-                this.bot.isMobile,
-                'DISMISS-ALL-MESSAGES',
-                `Handler error: ${error instanceof Error ? error.message : String(error)}`
-            )
+            this.bot.logger.warn(this.bot.isMobile, 'DISMISS-ALL-MESSAGES', `Handler error: ${errMsg(error)}`)
         }
     }
 
@@ -101,11 +100,7 @@ export default class BrowserUtils {
 
             return newTab
         } catch (error) {
-            this.bot.logger.error(
-                this.bot.isMobile,
-                'GET-NEW-TAB',
-                `Unable to get latest tab: ${error instanceof Error ? error.message : String(error)}`
-            )
+            this.bot.logger.error(this.bot.isMobile, 'GET-NEW-TAB', `Unable to get latest tab: ${errMsg(error)}`)
             throw error
         }
     }
@@ -127,11 +122,7 @@ export default class BrowserUtils {
                 return false
             }
         } catch (error) {
-            this.bot.logger.error(
-                this.bot.isMobile,
-                'RELOAD-BAD-PAGE',
-                `Reload check failed: ${error instanceof Error ? error.message : String(error)}`
-            )
+            this.bot.logger.error(this.bot.isMobile, 'RELOAD-BAD-PAGE', `Reload check failed: ${errMsg(error)}`)
             return true
         }
     }
@@ -184,7 +175,7 @@ export default class BrowserUtils {
                         this.bot.logger.warn(
                             this.bot.isMobile,
                             'SEARCH-CLOSE-TABS',
-                            `Failed to create new tab: ${error instanceof Error ? error.message : String(error)}`
+                            `Failed to create new tab: ${errMsg(error)}`
                         )
                         return null
                     }
@@ -196,11 +187,7 @@ export default class BrowserUtils {
             const latestTab = await this.getLatestTab(page)
             return latestTab
         } catch (error) {
-            this.bot.logger.error(
-                this.bot.isMobile,
-                'SEARCH-CLOSE-TABS',
-                `Error: ${error instanceof Error ? error.message : String(error)}`
-            )
+            this.bot.logger.error(this.bot.isMobile, 'SEARCH-CLOSE-TABS', `Error: ${errMsg(error)}`)
             return page
         }
     }
@@ -227,11 +214,7 @@ export default class BrowserUtils {
 
             return true
         } catch (error) {
-            this.bot.logger.warn(
-                this.bot.isMobile,
-                'GHOST-CLICK',
-                `Failed for ${selector}: ${error instanceof Error ? error.message : String(error)}`
-            )
+            this.bot.logger.warn(this.bot.isMobile, 'GHOST-CLICK', `Failed for ${selector}: ${errMsg(error)}`)
             return false
         }
     }
@@ -261,11 +244,7 @@ export default class BrowserUtils {
                     }
                 })
             } catch (error) {
-                this.bot.logger.debug(
-                    this.bot.isMobile,
-                    'DISABLE-FIDO',
-                    `An error occurred: ${error instanceof Error ? error.message : String(error)}`
-                )
+                this.bot.logger.debug(this.bot.isMobile, 'DISABLE-FIDO', `An error occurred: ${errMsg(error)}`)
                 route.continue()
             }
         })

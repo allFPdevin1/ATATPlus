@@ -1,13 +1,19 @@
 import type { AxiosRequestConfig } from 'axios'
+
 import { randomBytes } from 'crypto'
+
 import type { Page } from 'patchright'
+
 import * as fs from 'fs'
+
 import path from 'path'
 
 import { Workers } from '../../Workers'
+
 import { QueryCore } from '../../QueryEngine'
 
 import type { BasePromotion } from '../../../interface/DashboardData'
+import { errMsg } from '../../../util/Utils'
 
 export class SearchOnBing extends Workers {
     private bingHome = 'https://bing.com'
@@ -84,7 +90,7 @@ export class SearchOnBing extends Workers {
             this.bot.logger.error(
                 this.bot.isMobile,
                 'SEARCH-ON-BING',
-                `Error in doSearchOnBing | offerId=${promotion.offerId} | message=${error instanceof Error ? error.message : String(error)}`
+                `Error in doSearchOnBing | offerId=${promotion.offerId} | message=${errMsg(error)}`
             )
         }
     }
@@ -161,7 +167,7 @@ export class SearchOnBing extends Workers {
                 this.bot.logger.error(
                     this.bot.isMobile,
                     'SEARCH-ON-BING-SEARCH',
-                    `Error during search loop | query="${query}" | message=${error instanceof Error ? error.message : String(error)}`
+                    `Error during search loop | query="${query}" | message=${errMsg(error)}`
                 )
             } finally {
                 await this.bot.utils.wait(this.bot.utils.randomDelay(5000, 15000))
@@ -219,7 +225,7 @@ export class SearchOnBing extends Workers {
             this.bot.logger.error(
                 this.bot.isMobile,
                 'SEARCH-ON-BING-ACTIVATE',
-                `Activation failed | offerId=${promotion.offerId} | message=${error instanceof Error ? error.message : String(error)}`
+                `Activation failed | offerId=${promotion.offerId} | message=${errMsg(error)}`
             )
             return false
         }
@@ -327,7 +333,7 @@ export class SearchOnBing extends Workers {
             this.bot.logger.error(
                 this.bot.isMobile,
                 'SEARCH-ON-BING-QUERY',
-                `Error while resolving search queries | title="${promotion.title}" | message=${error instanceof Error ? error.message : String(error)} | fallback=promotionTitle`
+                `Error while resolving search queries | title="${promotion.title}" | message=${errMsg(error)} | fallback=promotionTitle`
             )
             return [promotion.title]
         }

@@ -1,6 +1,9 @@
 import type { AxiosRequestConfig } from 'axios'
+
 import type { BasePromotion } from '../../../interface/DashboardData'
+
 import { Workers } from '../../Workers'
+import { errMsg } from '../../../util/Utils'
 
 export class UrlReward extends Workers {
     private cookieHeader: string = ''
@@ -123,7 +126,7 @@ export class UrlReward extends Workers {
             this.bot.logger.error(
                 this.bot.isMobile,
                 'URL-REWARD',
-                `Error in doUrlReward | offerId=${promotion.offerId} | message=${error instanceof Error ? error.message : String(error)}`
+                `Error in doUrlReward | offerId=${promotion.offerId} | message=${errMsg(error)}`
             )
         }
     }

@@ -1,6 +1,9 @@
 import type { AxiosRequestConfig } from 'axios'
+
 import type { BasePromotion } from '../../../interface/DashboardData'
+
 import { Workers } from '../../Workers'
+import { errMsg } from '../../../util/Utils'
 
 export class Quiz extends Workers {
     private cookieHeader: string = ''
@@ -145,7 +148,7 @@ export class Quiz extends Workers {
                         this.bot.logger.error(
                             this.bot.isMobile,
                             'QUIZ',
-                            `Error during ReportActivity | attempt=${i + 1}/${maxAttempts} | offerId=${offerId} | message=${error instanceof Error ? error.message : String(error)}`
+                            `Error during ReportActivity | attempt=${i + 1}/${maxAttempts} | offerId=${offerId} | message=${errMsg(error)}`
                         )
                         break
                     }
@@ -167,7 +170,7 @@ export class Quiz extends Workers {
             this.bot.logger.error(
                 this.bot.isMobile,
                 'QUIZ',
-                `Error in doQuiz | offerId=${promotion.offerId} | message=${error instanceof Error ? error.message : String(error)}`
+                `Error in doQuiz | offerId=${promotion.offerId} | message=${errMsg(error)}`
             )
         }
     }

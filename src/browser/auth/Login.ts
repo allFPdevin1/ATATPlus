@@ -1,15 +1,23 @@
 import type { Page } from 'patchright'
+
 import type { MicrosoftRewardsBot } from '../../index'
+
 import { saveSessionData } from '../../util/Load'
 
 import { MobileAccessLogin } from './methods/MobileAccessLogin'
+
 import { EmailLogin } from './methods/EmailLogin'
+
 import { PasswordlessLogin } from './methods/PasswordlessLogin'
+
 import { TotpLogin } from './methods/Totp2FALogin'
+
 import { CodeLogin } from './methods/GetACodeLogin'
+
 import { RecoveryLogin } from './methods/RecoveryEmailLogin'
 
 import type { Account } from '../../interface/Account'
+import { errMsg } from '../../util/Utils'
 
 type LoginState =
     | 'EMAIL_INPUT'
@@ -148,11 +156,7 @@ export class Login {
 
             await this.finalizeLogin(page, account.email)
         } catch (error) {
-            this.bot.logger.error(
-                this.bot.isMobile,
-                'LOGIN',
-                `Fatal error: ${error instanceof Error ? error.message : String(error)}`
-            )
+            this.bot.logger.error(this.bot.isMobile, 'LOGIN', `Fatal error: ${errMsg(error)}`)
             throw error
         }
     }
@@ -633,11 +637,7 @@ export class Login {
 
             this.bot.logger.warn(this.bot.isMobile, 'LOGIN-BING', 'Could not verify Bing session, continuing anyway')
         } catch (error) {
-            this.bot.logger.warn(
-                this.bot.isMobile,
-                'LOGIN-BING',
-                `Verification error: ${error instanceof Error ? error.message : String(error)}`
-            )
+            this.bot.logger.warn(this.bot.isMobile, 'LOGIN-BING', `Verification error: ${errMsg(error)}`)
         }
     }
 
@@ -717,11 +717,7 @@ export class Login {
                 'No RequestVerificationToken found, some activities may not work'
             )
         } catch (error) {
-            throw this.bot.logger.error(
-                this.bot.isMobile,
-                'GET-REWARD-SESSION',
-                `Fatal error: ${error instanceof Error ? error.message : String(error)}`
-            )
+            throw this.bot.logger.error(this.bot.isMobile, 'GET-REWARD-SESSION', `Fatal error: ${errMsg(error)}`)
         }
     }
 

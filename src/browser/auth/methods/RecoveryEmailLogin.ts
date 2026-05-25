@@ -1,6 +1,7 @@
 import type { Page } from 'patchright'
 import type { MicrosoftRewardsBot } from '../../../index'
 import { getErrorMessage, promptInput } from './LoginUtils'
+import { errMsg } from '../../../util/Utils'
 
 export class RecoveryLogin {
     private readonly textInputSelector = '[data-testid="proof-confirmation"]'
@@ -31,11 +32,7 @@ export class RecoveryLogin {
             )
             return false
         } catch (error) {
-            this.bot.logger.warn(
-                this.bot.isMobile,
-                'LOGIN-RECOVERY',
-                `Failed to fill email input: ${error instanceof Error ? error.message : String(error)}`
-            )
+            this.bot.logger.warn(this.bot.isMobile, 'LOGIN-RECOVERY', `Failed to fill email input: ${errMsg(error)}`)
             return false
         }
     }
@@ -179,7 +176,7 @@ export class RecoveryLogin {
 
             throw new Error(`Email input failed after ${this.maxManualAttempts} attempts`)
         } catch (error) {
-            const errorMsg = error instanceof Error ? error.message : String(error)
+            const errorMsg = errMsg(error)
             this.bot.logger.error(this.bot.isMobile, 'LOGIN-RECOVERY', `Fatal error: ${errorMsg}`)
             throw error
         }

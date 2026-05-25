@@ -1,9 +1,13 @@
 import type { Page } from 'patchright'
+
 import { randomBytes } from 'crypto'
+
 import type { Counters, DashboardData } from '../../../interface/DashboardData'
 
 import { QueryCore } from '../../QueryEngine'
+
 import { Workers } from '../../Workers'
+import { errMsg } from '../../../util/Utils'
 
 export class Search extends Workers {
     private bingHome = 'https://bing.com'
@@ -64,100 +68,91 @@ export class Search extends Workers {
             await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {})
             await this.bot.browser.utils.tryDismissAllMessages(page)
 
-            let stagnantLoop = 0
-            const stagnantLoopMax = 10
+            const runSearchLoop = async (
+                queryPool: string[],
+                tag: string,
+                stagnantMax: number,
+                opts?: { refillQueries?: boolean }
+            ): Promise<{ stagnant: boolean }> => {
+                let stagnantLoop = 0
 
-            for (let i = 0; i < queries.length; i++) {
-                const query = queries[i] as string
+                for (let i = 0; i < queryPool.length; i++) {
+                    const query = queryPool[i] as string
 
-                searchCounters = await this.bingSearch(page, query, isMobile)
-                const newMissingPoints = this.bot.browser.func.missingSearchPoints(searchCounters, isMobile)
-                const newMissingPointsTotal = newMissingPoints.totalPoints
+                    searchCounters = await this.bingSearch(page, query, isMobile)
+                    const newMissing = this.bot.browser.func.missingSearchPoints(searchCounters, isMobile)
+                    const newMissingTotal = newMissing.totalPoints
+                    const gainedPoints = Math.max(0, missingPointsTotal - newMissingTotal)
 
-                const rawGained = missingPointsTotal - newMissingPointsTotal
-                const gainedPoints = Math.max(0, rawGained)
+                    if (gainedPoints === 0) {
+                        stagnantLoop++
+                        this.bot.logger.info(
+                            isMobile,
+                            tag,
+                            `No points gained ${stagnantLoop}/${stagnantMax} | query="${query}" | remaining=${newMissingTotal}`
+                        )
+                    } else {
+                        stagnantLoop = 0
+                        this.bot.userData.currentPoints = Number(this.bot.userData.currentPoints ?? 0) + gainedPoints
+                        this.bot.userData.gainedPoints = (this.bot.userData.gainedPoints ?? 0) + gainedPoints
+                        totalGainedPoints += gainedPoints
+                        this.bot.logger.info(
+                            isMobile,
+                            tag,
+                            `gainedPoints=${gainedPoints} points | query="${query}" | remaining=${newMissingTotal}`,
+                            'green'
+                        )
+                    }
 
-                if (gainedPoints === 0) {
-                    stagnantLoop++
-                    this.bot.logger.info(
-                        isMobile,
-                        'SEARCH-BING',
-                        `No points gained ${stagnantLoop}/${stagnantLoopMax} | query="${query}" | remaining=${newMissingPointsTotal}`
-                    )
-                } else {
-                    stagnantLoop = 0
+                    missingPointsTotal = newMissingTotal
 
-                    const newBalance = Number(this.bot.userData.currentPoints ?? 0) + gainedPoints
-                    this.bot.userData.currentPoints = newBalance
-                    this.bot.userData.gainedPoints = (this.bot.userData.gainedPoints ?? 0) + gainedPoints
+                    if (missingPointsTotal === 0) {
+                        this.bot.logger.info(isMobile, tag, 'All required search points earned')
+                        return { stagnant: false }
+                    }
 
-                    totalGainedPoints += gainedPoints
+                    if (stagnantLoop > stagnantMax) {
+                        this.bot.logger.warn(isMobile, tag, `No points for ${stagnantMax} iterations, aborting`)
+                        return { stagnant: true }
+                    }
 
-                    this.bot.logger.info(
-                        isMobile,
-                        'SEARCH-BING',
-                        `gainedPoints=${gainedPoints} points | query="${query}" | remaining=${newMissingPointsTotal}`,
-                        'green'
-                    )
+                    if (opts?.refillQueries) {
+                        const remaining = queryPool.length - (i + 1)
+                        if (missingPointsTotal > 0 && remaining < 20) {
+                            this.bot.logger.warn(
+                                isMobile,
+                                tag,
+                                `Low query buffer, regenerating | remainingQueries=${remaining} | missing=${missingPointsTotal}`
+                            )
+                            const extra = await queryCore.queryManager({
+                                shuffle: true,
+                                related: true,
+                                langCode,
+                                geoLocale: locale,
+                                sourceOrder: this.bot.config.searchSettings.queryEngines
+                            })
+                            const merged = [...queryPool, ...extra].map(q => q.trim()).filter(Boolean)
+                            queryPool = [...new Set(merged)]
+                            queryPool = this.bot.utils.shuffleArray(queryPool)
+                            this.bot.logger.debug(isMobile, tag, `Query pool regenerated | count=${queryPool.length}`)
+                        }
+                    }
                 }
 
-                missingPointsTotal = newMissingPointsTotal
-
-                if (missingPointsTotal === 0) {
-                    this.bot.logger.info(
-                        isMobile,
-                        'SEARCH-BING',
-                        'All required search points earned, stopping main search loop'
-                    )
-                    break
-                }
-
-                if (stagnantLoop > stagnantLoopMax) {
-                    this.bot.logger.warn(
-                        isMobile,
-                        'SEARCH-BING',
-                        `Search did not gain points for ${stagnantLoopMax} iterations, aborting main search loop`
-                    )
-                    stagnantLoop = 0
-                    break
-                }
-
-                const remainingQueries = queries.length - (i + 1)
-                const minBuffer = 20
-                if (missingPointsTotal > 0 && remainingQueries < minBuffer) {
-                    this.bot.logger.warn(
-                        isMobile,
-                        'SEARCH-BING',
-                        `Low query buffer while still missing points, regenerating | remainingQueries=${remainingQueries} | missing=${missingPointsTotal}`
-                    )
-
-                    const extra = await queryCore.queryManager({
-                        shuffle: true,
-                        related: true,
-                        langCode,
-                        geoLocale: locale,
-                        sourceOrder: this.bot.config.searchSettings.queryEngines
-                    })
-
-                    const merged = [...queries, ...extra].map(q => q.trim()).filter(Boolean)
-                    queries = [...new Set(merged)]
-                    queries = this.bot.utils.shuffleArray(queries)
-
-                    this.bot.logger.debug(isMobile, 'SEARCH-BING', `Query pool regenerated | count=${queries.length}`)
-                }
+                return { stagnant: false }
             }
 
-            if (missingPointsTotal > 0) {
+            const mainResult = await runSearchLoop(queries, 'SEARCH-BING', 10, { refillQueries: true })
+
+            if (missingPointsTotal > 0 && !mainResult.stagnant) {
                 this.bot.logger.info(
                     isMobile,
                     'SEARCH-BING',
-                    `Search completed but still missing points, continuing with regenerated queries | remaining=${missingPointsTotal}`
+                    `Continuing with extra queries | remaining=${missingPointsTotal}`
                 )
 
-                let stagnantLoop = 0
-                const stagnantLoopMax = 5
-
-                while (missingPointsTotal > 0) {
+                const MAX_EXTRA_ROUNDS = 3
+                for (let round = 0; round < MAX_EXTRA_ROUNDS && missingPointsTotal > 0; round++) {
                     const extra = await queryCore.queryManager({
                         shuffle: true,
                         related: true,
@@ -167,79 +162,16 @@ export class Search extends Workers {
                     })
 
                     const merged = [...queries, ...extra].map(q => q.trim()).filter(Boolean)
-                    const newPool = [...new Set(merged)]
-                    queries = this.bot.utils.shuffleArray(newPool)
+                    queries = this.bot.utils.shuffleArray([...new Set(merged)])
 
                     this.bot.logger.info(
                         isMobile,
                         'SEARCH-BING-EXTRA',
-                        `New search query pool generated | count=${queries.length}`
+                        `Round ${round + 1} | queries=${queries.length}`
                     )
 
-                    for (const query of queries) {
-                        this.bot.logger.info(
-                            isMobile,
-                            'SEARCH-BING-EXTRA',
-                            `Extra search | remaining=${missingPointsTotal} | query="${query}"`
-                        )
-
-                        searchCounters = await this.bingSearch(page, query, isMobile)
-                        const newMissingPoints = this.bot.browser.func.missingSearchPoints(searchCounters, isMobile)
-                        const newMissingPointsTotal = newMissingPoints.totalPoints
-
-                        const rawGained = missingPointsTotal - newMissingPointsTotal
-                        const gainedPoints = Math.max(0, rawGained)
-
-                        if (gainedPoints === 0) {
-                            stagnantLoop++
-                            this.bot.logger.info(
-                                isMobile,
-                                'SEARCH-BING-EXTRA',
-                                `No points gained ${stagnantLoop}/${stagnantLoopMax} | query="${query}" | remaining=${newMissingPointsTotal}`
-                            )
-                        } else {
-                            stagnantLoop = 0
-
-                            const newBalance = Number(this.bot.userData.currentPoints ?? 0) + gainedPoints
-                            this.bot.userData.currentPoints = newBalance
-                            this.bot.userData.gainedPoints = (this.bot.userData.gainedPoints ?? 0) + gainedPoints
-
-                            totalGainedPoints += gainedPoints
-
-                            this.bot.logger.info(
-                                isMobile,
-                                'SEARCH-BING-EXTRA',
-                                `gainedPoints=${gainedPoints} points | query="${query}" | remaining=${newMissingPointsTotal}`,
-                                'green'
-                            )
-                        }
-
-                        missingPointsTotal = newMissingPointsTotal
-
-                        if (missingPointsTotal === 0) {
-                            this.bot.logger.info(
-                                isMobile,
-                                'SEARCH-BING-EXTRA',
-                                'All required search points earned during extra searches'
-                            )
-                            break
-                        }
-
-                        if (stagnantLoop > stagnantLoopMax) {
-                            this.bot.logger.warn(
-                                isMobile,
-                                'SEARCH-BING-EXTRA',
-                                `Search did not gain points for ${stagnantLoopMax} iterations, aborting extra searches`
-                            )
-                            const finalBalance = Number(this.bot.userData.currentPoints ?? startBalance)
-                            this.bot.logger.info(
-                                isMobile,
-                                'SEARCH-BING',
-                                `Aborted extra searches | startBalance=${startBalance} | finalBalance=${finalBalance}`
-                            )
-                            return totalGainedPoints
-                        }
-                    }
+                    const extraResult = await runSearchLoop(queries, 'SEARCH-BING-EXTRA', 5)
+                    if (extraResult.stagnant || missingPointsTotal === 0) break
                 }
             }
 
@@ -253,11 +185,7 @@ export class Search extends Workers {
 
             return totalGainedPoints
         } catch (error) {
-            this.bot.logger.error(
-                isMobile,
-                'SEARCH-BING',
-                `Error in doSearch | message=${error instanceof Error ? error.message : String(error)}`
-            )
+            this.bot.logger.error(isMobile, 'SEARCH-BING', `Error in doSearch | message=${errMsg(error)}`)
             return totalGainedPoints
         }
     }
@@ -349,7 +277,7 @@ export class Search extends Workers {
                     this.bot.logger.error(
                         isMobile,
                         'SEARCH-BING',
-                        `Failed after 5 retries | query="${query}" | message=${error instanceof Error ? error.message : String(error)}`
+                        `Failed after 5 retries | query="${query}" | message=${errMsg(error)}`
                     )
                     break
                 }
@@ -357,7 +285,7 @@ export class Search extends Workers {
                 this.bot.logger.error(
                     isMobile,
                     'SEARCH-BING',
-                    `Search attempt failed | attempt=${i + 1}/${maxAttempts} | query="${query}" | message=${error instanceof Error ? error.message : String(error)}`
+                    `Search attempt failed | attempt=${i + 1}/${maxAttempts} | query="${query}" | message=${errMsg(error)}`
                 )
 
                 this.bot.logger.warn(
@@ -398,7 +326,7 @@ export class Search extends Workers {
             this.bot.logger.error(
                 isMobile,
                 'SEARCH-RANDOM-SCROLL',
-                `An error occurred during random scroll | message=${error instanceof Error ? error.message : String(error)}`
+                `An error occurred during random scroll | message=${errMsg(error)}`
             )
         }
     }
@@ -428,7 +356,7 @@ export class Search extends Workers {
             this.bot.logger.error(
                 isMobile,
                 'SEARCH-RANDOM-CLICK',
-                `An error occurred during random click | message=${error instanceof Error ? error.message : String(error)}`
+                `An error occurred during random click | message=${errMsg(error)}`
             )
         }
     }

@@ -1,8 +1,11 @@
 import axios from 'axios'
+
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator'
 
 import type { ChromeVersion, EdgeVersion } from '../interface/UserAgentUtil'
+
 import type { MicrosoftRewardsBot } from '../index'
+import { errMsg } from '../util/Utils'
 
 export class UserAgentManager {
     private static readonly NOT_A_BRAND_VERSION = '99'
@@ -55,11 +58,7 @@ export class UserAgentManager {
             const data: ChromeVersion = response.data
             return data.channels.Stable.version
         } catch (error) {
-            this.bot.logger.error(
-                isMobile,
-                'USERAGENT-CHROME-VERSION',
-                `An error occurred: ${error instanceof Error ? error.message : String(error)}`
-            )
+            this.bot.logger.error(isMobile, 'USERAGENT-CHROME-VERSION', `An error occurred: ${errMsg(error)}`)
             throw error
         }
     }
@@ -82,11 +81,7 @@ export class UserAgentManager {
                 windows: stable.Releases.find(x => x.Platform == 'Windows' && x.Architecture == 'x64')?.ProductVersion
             }
         } catch (error) {
-            this.bot.logger.error(
-                isMobile,
-                'USERAGENT-EDGE-VERSION',
-                `An error occurred: ${error instanceof Error ? error.message : String(error)}`
-            )
+            this.bot.logger.error(isMobile, 'USERAGENT-EDGE-VERSION', `An error occurred: ${errMsg(error)}`)
             throw error
         }
     }
@@ -153,11 +148,7 @@ export class UserAgentManager {
 
             return fingerprint
         } catch (error) {
-            this.bot.logger.error(
-                isMobile,
-                'USER-AGENT-UPDATE',
-                `An error occurred: ${error instanceof Error ? error.message : String(error)}`
-            )
+            this.bot.logger.error(isMobile, 'USER-AGENT-UPDATE', `An error occurred: ${errMsg(error)}`)
             throw error
         }
     }

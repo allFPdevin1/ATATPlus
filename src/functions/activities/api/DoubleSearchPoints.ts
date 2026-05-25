@@ -1,6 +1,9 @@
 import type { AxiosRequestConfig } from 'axios'
+
 import { Workers } from '../../Workers'
+
 import { PromotionalItem } from '../../../interface/DashboardData'
+import { errMsg } from '../../../util/Utils'
 
 export class DoubleSearchPoints extends Workers {
     private cookieHeader: string = ''
@@ -118,7 +121,7 @@ export class DoubleSearchPoints extends Workers {
             this.bot.logger.error(
                 this.bot.isMobile,
                 'DOUBLE-SEARCH-POINTS',
-                `Error in doDoubleSearchPoints | offerId=${offerId} | message=${error instanceof Error ? error.message : String(error)}`
+                `Error in doDoubleSearchPoints | offerId=${offerId} | message=${errMsg(error)}`
             )
         }
     }

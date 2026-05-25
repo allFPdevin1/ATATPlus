@@ -1,7 +1,11 @@
 import type { AxiosRequestConfig } from 'axios'
+
 import { randomUUID } from 'crypto'
+
 import type { Promotion } from '../../../interface/AppDashBoardData'
+
 import { Workers } from '../../Workers'
+import { errMsg } from '../../../util/Utils'
 
 export class AppReward extends Workers {
     private gainedPoints: number = 0
@@ -112,7 +116,7 @@ export class AppReward extends Workers {
             this.bot.logger.error(
                 this.bot.isMobile,
                 'APP-REWARD',
-                `Error in doAppReward | offerId=${offerId} | message=${error instanceof Error ? error.message : String(error)}`
+                `Error in doAppReward | offerId=${offerId} | message=${errMsg(error)}`
             )
         }
     }

@@ -1,8 +1,14 @@
 import type { BrowserContext } from 'patchright'
+
 import type { BrowserFingerprintWithHeaders } from 'fingerprint-generator'
+
 import { MicrosoftRewardsBot, executionContext } from '../index'
+
 import type { DashboardData } from '../interface/DashboardData'
+
 import type { Account } from '../interface/Account'
+import { ModernUIWorkers } from './ModernUIWorkers'
+import { errMsg } from '../util/Utils'
 
 interface BrowserSession {
     context: BrowserContext
@@ -81,11 +87,7 @@ export class SearchManager {
                 })
                 this.bot.logger.info('main', 'SEARCH-MANAGER', 'Mobile session closed')
             } catch (error) {
-                this.bot.logger.warn(
-                    'main',
-                    'SEARCH-MANAGER',
-                    `Failed to close mobile session: ${error instanceof Error ? error.message : String(error)}`
-                )
+                this.bot.logger.warn('main', 'SEARCH-MANAGER', `Failed to close mobile session: ${errMsg(error)}`)
                 if (error instanceof Error && error.stack) {
                     this.bot.logger.debug('main', 'SEARCH-MANAGER', `Mobile close stack: ${error.stack}`)
                 }
@@ -104,11 +106,7 @@ export class SearchManager {
                         await this.bot.browser.func.closeBrowser(desktopSession.context, accountEmail)
                     })
                 } catch (error) {
-                    this.bot.logger.error(
-                        'main',
-                        'SEARCH-MANAGER',
-                        `Modern UI desktop tasks failed: ${error instanceof Error ? error.message : String(error)}`
-                    )
+                    this.bot.logger.error('main', 'SEARCH-MANAGER', `Modern UI desktop tasks failed: ${errMsg(error)}`)
                 }
             }
 
@@ -255,11 +253,7 @@ export class SearchManager {
 
             return { mobilePoints, desktopPoints }
         } catch (error) {
-            this.bot.logger.error(
-                'main',
-                'SEARCH-MANAGER',
-                `Parallel failed: ${error instanceof Error ? error.message : String(error)}`
-            )
+            this.bot.logger.error('main', 'SEARCH-MANAGER', `Parallel failed: ${errMsg(error)}`)
             if (error instanceof Error && error.stack) {
                 this.bot.logger.debug('main', 'SEARCH-MANAGER', `Parallel stack: ${error.stack}`)
             }
@@ -274,11 +268,7 @@ export class SearchManager {
                     })
                     this.bot.logger.info('main', 'SEARCH-MANAGER', 'Cleanup: mobile session closed')
                 } catch (error) {
-                    this.bot.logger.warn(
-                        'main',
-                        'SEARCH-MANAGER',
-                        `Cleanup: mobile close failed: ${error instanceof Error ? error.message : String(error)}`
-                    )
+                    this.bot.logger.warn('main', 'SEARCH-MANAGER', `Cleanup: mobile close failed: ${errMsg(error)}`)
                     if (error instanceof Error && error.stack) {
                         this.bot.logger.debug('main', 'SEARCH-MANAGER', `Cleanup mobile stack: ${error.stack}`)
                     }
@@ -339,11 +329,7 @@ export class SearchManager {
                 })
                 this.bot.logger.info('main', 'SEARCH-MANAGER', 'Unused mobile session closed')
             } catch (error) {
-                this.bot.logger.warn(
-                    'main',
-                    'SEARCH-MANAGER',
-                    `Unused mobile close failed: ${error instanceof Error ? error.message : String(error)}`
-                )
+                this.bot.logger.warn('main', 'SEARCH-MANAGER', `Unused mobile close failed: ${errMsg(error)}`)
                 if (error instanceof Error && error.stack) {
                     this.bot.logger.debug('main', 'SEARCH-MANAGER', `Unused mobile stack: ${error.stack}`)
                 }
@@ -421,7 +407,6 @@ export class SearchManager {
         try {
             this.bot.logger.info('main', 'MODERN-UI-DESKTOP', 'Running Modern UI tasks on desktop browser')
 
-            const { ModernUIWorkers } = await import('./ModernUIWorkers')
             const modernWorkers = new ModernUIWorkers(this.bot)
 
             if (this.bot.config.workers.doDailySet) {
@@ -434,11 +419,7 @@ export class SearchManager {
 
             this.bot.logger.info('main', 'MODERN-UI-DESKTOP', 'Modern UI tasks completed')
         } catch (error) {
-            this.bot.logger.error(
-                'main',
-                'MODERN-UI-DESKTOP',
-                `Error: ${error instanceof Error ? error.message : String(error)}`
-            )
+            this.bot.logger.error('main', 'MODERN-UI-DESKTOP', `Error: ${errMsg(error)}`)
         }
     }
 
@@ -489,11 +470,7 @@ export class SearchManager {
 
                 return pointsEarned
             } catch (error) {
-                this.bot.logger.error(
-                    'main',
-                    'SEARCH-MOBILE-SEARCH',
-                    `Failed: ${error instanceof Error ? error.message : String(error)}`
-                )
+                this.bot.logger.error('main', 'SEARCH-MOBILE-SEARCH', `Failed: ${errMsg(error)}`)
                 if (error instanceof Error && error.stack) {
                     this.bot.logger.debug('main', 'SEARCH-MOBILE-SEARCH', `Stack: ${error.stack}`)
                 }
@@ -505,11 +482,7 @@ export class SearchManager {
                     await this.bot.browser.func.closeBrowser(mobileSession.context, accountEmail)
                     this.bot.logger.info('main', 'SEARCH-MOBILE-SEARCH', 'Mobile browser closed')
                 } catch (error) {
-                    this.bot.logger.warn(
-                        'main',
-                        'SEARCH-MOBILE-SEARCH',
-                        `Close failed: ${error instanceof Error ? error.message : String(error)}`
-                    )
+                    this.bot.logger.warn('main', 'SEARCH-MOBILE-SEARCH', `Close failed: ${errMsg(error)}`)
                     if (error instanceof Error && error.stack) {
                         this.bot.logger.debug('main', 'SEARCH-MOBILE-SEARCH', `Close stack: ${error.stack}`)
                     }
@@ -558,11 +531,7 @@ export class SearchManager {
 
                 return pointsEarned
             } catch (error) {
-                this.bot.logger.error(
-                    'main',
-                    'SEARCH-DESKTOP-PARALLEL',
-                    `Failed: ${error instanceof Error ? error.message : String(error)}`
-                )
+                this.bot.logger.error('main', 'SEARCH-DESKTOP-PARALLEL', `Failed: ${errMsg(error)}`)
                 if (error instanceof Error && error.stack) {
                     this.bot.logger.debug('main', 'SEARCH-DESKTOP-PARALLEL', `Stack: ${error.stack}`)
                 }
@@ -574,11 +543,7 @@ export class SearchManager {
                     await this.bot.browser.func.closeBrowser(desktopSession.context, accountEmail)
                     this.bot.logger.info('main', 'SEARCH-DESKTOP-PARALLEL', 'Desktop browser closed')
                 } catch (error) {
-                    this.bot.logger.warn(
-                        'main',
-                        'SEARCH-DESKTOP-PARALLEL',
-                        `Close failed: ${error instanceof Error ? error.message : String(error)}`
-                    )
+                    this.bot.logger.warn('main', 'SEARCH-DESKTOP-PARALLEL', `Close failed: ${errMsg(error)}`)
                     if (error instanceof Error && error.stack) {
                         this.bot.logger.debug('main', 'SEARCH-DESKTOP-PARALLEL', `Close stack: ${error.stack}`)
                     }
@@ -642,11 +607,7 @@ export class SearchManager {
 
                 return pointsEarned
             } catch (error) {
-                this.bot.logger.error(
-                    'main',
-                    'SEARCH-DESKTOP-SEQUENTIAL',
-                    `Failed: ${error instanceof Error ? error.message : String(error)}`
-                )
+                this.bot.logger.error('main', 'SEARCH-DESKTOP-SEQUENTIAL', `Failed: ${errMsg(error)}`)
                 if (error instanceof Error && error.stack) {
                     this.bot.logger.debug('main', 'SEARCH-DESKTOP-SEQUENTIAL', `Stack: ${error.stack}`)
                 }
@@ -663,11 +624,7 @@ export class SearchManager {
                         await this.bot.browser.func.closeBrowser(desktopSession.context, accountEmail)
                         this.bot.logger.info('main', 'SEARCH-DESKTOP-SEQUENTIAL', 'Desktop browser closed')
                     } catch (error) {
-                        this.bot.logger.warn(
-                            'main',
-                            'SEARCH-DESKTOP-SEQUENTIAL',
-                            `Close failed: ${error instanceof Error ? error.message : String(error)}`
-                        )
+                        this.bot.logger.warn('main', 'SEARCH-DESKTOP-SEQUENTIAL', `Close failed: ${errMsg(error)}`)
                         if (error instanceof Error && error.stack) {
                             this.bot.logger.debug('main', 'SEARCH-DESKTOP-SEQUENTIAL', `Close stack: ${error.stack}`)
                         }

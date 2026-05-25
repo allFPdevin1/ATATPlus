@@ -139,15 +139,61 @@ export async function sendDiscordSummary(
 }
 
 /**
+ * Send a simple per-account point notification to Discord.
+ * Format:
+ *   account: abc@xyz
+ *   old point: 123
+ *   new point: 456
+ */
+export async function sendDiscordAccountNotification(discordUrl: string, account: AccountSummary): Promise<void> {
+    if (!discordUrl) return
+
+    const statusIcon = account.success ? '✅' : '❌'
+    const diff = account.finalPoints - account.initialPoints
+    const diffStr = diff >= 0 ? `+${diff}` : `${diff}`
+
+    const content = [
+        `${statusIcon} **Account:** \`${account.email}\``,
+        `**Old point:** ${account.initialPoints.toLocaleString()}`,
+        `**New point:** ${account.finalPoints.toLocaleString()}`,
+        `**Earned:** ${diffStr} pts`
+    ].join('\n')
+
+    const embed = {
+        embeds: [
+            {
+                color: account.success ? 0x00d26a : 0xff4444,
+                description: content,
+                timestamp: new Date().toISOString()
+            }
+        ],
+        allowed_mentions: { parse: [] }
+    }
+
+    await discordQueue.add(async () => {
+        try {
+            await axios({
+                method: 'POST',
+                url: discordUrl,
+                headers: { 'Content-Type': 'application/json' },
+                data: embed,
+                timeout: 10000
+            })
+        } catch (err: any) {
+            if (err?.response?.status === 429) return
+        }
+    })
+}
+
+/**
  * Mask email for privacy: "knowme314@gmail.com" → "kno***14@gm...com"
  */
 function maskEmail(email: string): string {
     const [local, domain] = email.split('@')
     if (!local || !domain) return email
 
-    const maskedLocal = local.length <= 4
-        ? local[0] + '***'
-        : local.substring(0, 3) + '***' + local.substring(local.length - 2)
+    const maskedLocal =
+        local.length <= 4 ? local[0] + '***' : local.substring(0, 3) + '***' + local.substring(local.length - 2)
 
     const domainParts = domain.split('.')
     const maskedDomain = domainParts[0]!.substring(0, 2) + '...' + domainParts[domainParts.length - 1]
