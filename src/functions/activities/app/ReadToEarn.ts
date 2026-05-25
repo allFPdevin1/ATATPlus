@@ -1,6 +1,9 @@
 import type { AxiosRequestConfig } from 'axios'
+
 import { randomBytes } from 'crypto'
+
 import { Workers } from '../../Workers'
+import { errMsg } from '../../../util/Utils'
 
 export class ReadToEarn extends Workers {
     public async doReadToEarn() {
@@ -124,7 +127,7 @@ export class ReadToEarn extends Workers {
             this.bot.logger.error(
                 this.bot.isMobile,
                 'READ-TO-EARN',
-                `Error during Read to Earn | message=${error instanceof Error ? error.message : String(error)}`
+                `Error during Read to Earn | message=${errMsg(error)}`
             )
         }
     }

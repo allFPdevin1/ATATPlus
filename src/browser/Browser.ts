@@ -1,12 +1,17 @@
 import rebrowser, { BrowserContext } from 'patchright'
+
 import { newInjectedContext } from 'fingerprint-injector'
+
 import { BrowserFingerprintWithHeaders, FingerprintGenerator } from 'fingerprint-generator'
 
 import type { MicrosoftRewardsBot } from '../index'
+
 import { loadSessionData, saveFingerprintData } from '../util/Load'
+
 import { UserAgentManager } from './UserAgent'
 
 import type { Account, AccountProxy } from '../interface/Account'
+import { errMsg } from '../util/Utils'
 
 /* Test Stuff
 https://abrahamjuliot.github.io/creepjs/
@@ -63,7 +68,7 @@ class Browser {
                 args: [...Browser.BROWSER_ARGS]
             })
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error)
+            const errorMessage = errMsg(error)
             this.bot.logger.error(this.bot.isMobile, 'BROWSER', `Launch failed: ${errorMessage}`)
             throw error
         }

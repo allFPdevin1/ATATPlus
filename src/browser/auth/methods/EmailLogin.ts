@@ -1,5 +1,7 @@
 import type { Page } from 'patchright'
+
 import type { MicrosoftRewardsBot } from '../../../index'
+import { errMsg } from '../../../util/Utils'
 
 export class EmailLogin {
     private submitButton = 'button[type="submit"]'
@@ -38,11 +40,7 @@ export class EmailLogin {
 
             return 'ok'
         } catch (error) {
-            this.bot.logger.error(
-                this.bot.isMobile,
-                'LOGIN-ENTER-EMAIL',
-                `An error occurred: ${error instanceof Error ? error.message : String(error)}`
-            )
+            this.bot.logger.error(this.bot.isMobile, 'LOGIN-ENTER-EMAIL', `An error occurred: ${errMsg(error)}`)
             return 'error'
         }
     }
@@ -75,11 +73,7 @@ export class EmailLogin {
 
             return 'ok'
         } catch (error) {
-            this.bot.logger.error(
-                this.bot.isMobile,
-                'LOGIN-ENTER-PASSWORD',
-                `An error occurred: ${error instanceof Error ? error.message : String(error)}`
-            )
+            this.bot.logger.error(this.bot.isMobile, 'LOGIN-ENTER-PASSWORD', `An error occurred: ${errMsg(error)}`)
             return 'error'
         }
     }

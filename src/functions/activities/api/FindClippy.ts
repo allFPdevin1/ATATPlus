@@ -1,6 +1,9 @@
 import type { AxiosRequestConfig } from 'axios'
+
 import type { FindClippyPromotion } from '../../../interface/DashboardData'
+
 import { Workers } from '../../Workers'
+import { errMsg } from '../../../util/Utils'
 
 export class FindClippy extends Workers {
     private cookieHeader: string = ''
@@ -124,7 +127,7 @@ export class FindClippy extends Workers {
             this.bot.logger.error(
                 this.bot.isMobile,
                 'FIND-CLIPPY',
-                `Error in doFindClippy | offerId=${offerId} | message=${error instanceof Error ? error.message : String(error)}`
+                `Error in doFindClippy | offerId=${offerId} | message=${errMsg(error)}`
             )
         }
     }

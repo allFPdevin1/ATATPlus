@@ -4,6 +4,7 @@ import path from 'path'
 import type { GoogleSearch, GoogleTrendsResponse, RedditListing, WikipediaTopResponse } from '../interface/Search'
 import type { MicrosoftRewardsBot } from '../index'
 import { QueryEngine } from '../interface/Config'
+import { errDetail } from '../util/Utils'
 
 export class QueryCore {
     constructor(private bot: MicrosoftRewardsBot) {}
@@ -122,19 +123,14 @@ export class QueryCore {
 
             return finalQueries
         } catch (error) {
-            this.bot.logger.debug(
-                this.bot.isMobile,
-                'QUERY-MANAGER',
-                `error: ${error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ''}` : String(error)}`
-            )
+            this.bot.logger.debug(this.bot.isMobile, 'QUERY-MANAGER', `error: ${errDetail(error)}`)
             return []
         }
     }
 
     private async buildRelatedClusters(baseTopics: string[], langCode: string): Promise<string[][]> {
-        const clusters: string[][] = []
-
         const LIMIT = 50
+        const CONCURRENCY = 5
         const head = baseTopics.slice(0, LIMIT)
         const tail = baseTopics.slice(LIMIT)
 
@@ -146,16 +142,17 @@ export class QueryCore {
         this.bot.logger.debug(
             this.bot.isMobile,
             'QUERY-MANAGER',
-            `bing expansion enabled | limit=${LIMIT} | totalCalls=${head.length * 2}`
+            `bing expansion enabled | limit=${LIMIT} | concurrency=${CONCURRENCY} | totalCalls=${head.length * 2}`
         )
 
-        for (const topic of head) {
-            const suggestions = await this.getBingSuggestions(topic, langCode).catch(() => [])
-            const relatedTerms = await this.getBingRelatedTerms(topic).catch(() => [])
+        const expandTopic = async (topic: string): Promise<string[]> => {
+            const [suggestions, relatedTerms] = await Promise.all([
+                this.getBingSuggestions(topic, langCode).catch(() => []),
+                this.getBingRelatedTerms(topic).catch(() => [])
+            ])
 
             const usedSuggestions = suggestions.slice(0, 6)
             const usedRelated = relatedTerms.slice(0, 3)
-
             const cluster = this.normalizeAndDedupe([topic, ...usedSuggestions, ...usedRelated])
 
             this.bot.logger.debug(
@@ -164,7 +161,15 @@ export class QueryCore {
                 `cluster expanded | topic="${topic}" | suggestions=${suggestions.length}->${usedSuggestions.length} | related=${relatedTerms.length}->${usedRelated.length} | clusterSize=${cluster.length}`
             )
 
-            clusters.push(cluster)
+            return cluster
+        }
+
+        const clusters: string[][] = []
+
+        for (let i = 0; i < head.length; i += CONCURRENCY) {
+            const batch = head.slice(i, i + CONCURRENCY)
+            const results = await Promise.all(batch.map(topic => expandTopic(topic)))
+            clusters.push(...results)
         }
 
         if (tail.length) {
@@ -230,13 +235,7 @@ export class QueryCore {
                 })
             }
         } catch (error) {
-            this.bot.logger.debug(
-                this.bot.isMobile,
-                'SEARCH-GOOGLE-TRENDS',
-                `request failed: ${
-                    error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ''}` : String(error)
-                }`
-            )
+            this.bot.logger.debug(this.bot.isMobile, 'SEARCH-GOOGLE-TRENDS', `request failed: ${errDetail(error)}`)
             return []
         }
 
@@ -284,9 +283,7 @@ export class QueryCore {
             this.bot.logger.debug(
                 this.bot.isMobile,
                 'SEARCH-BING-SUGGESTIONS',
-                `request failed | query="${query}" | lang=${langCode} | error=${
-                    error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ''}` : String(error)
-                }`
+                `request failed | query="${query}" | lang=${langCode} | error=${errDetail(error)}`
             )
             return []
         }
@@ -319,9 +316,7 @@ export class QueryCore {
             this.bot.logger.debug(
                 this.bot.isMobile,
                 'SEARCH-BING-RELATED',
-                `request failed | query="${query}" | error=${
-                    error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ''}` : String(error)
-                }`
+                `request failed | query="${query}" | error=${errDetail(error)}`
             )
             return []
         }
@@ -362,9 +357,7 @@ export class QueryCore {
             this.bot.logger.debug(
                 this.bot.isMobile,
                 'SEARCH-BING-TRENDING',
-                `request failed | lang=${langCode} | error=${
-                    error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ''}` : String(error)
-                }`
+                `request failed | lang=${langCode} | error=${errDetail(error)}`
             )
             return []
         }
@@ -403,9 +396,7 @@ export class QueryCore {
             this.bot.logger.debug(
                 this.bot.isMobile,
                 'SEARCH-WIKIPEDIA-TRENDING',
-                `request failed | lang=${langCode} | error=${
-                    error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ''}` : String(error)
-                }`
+                `request failed | lang=${langCode} | error=${errDetail(error)}`
             )
             return []
         }
@@ -440,9 +431,7 @@ export class QueryCore {
             this.bot.logger.debug(
                 this.bot.isMobile,
                 'SEARCH-REDDIT',
-                `request failed | subreddit=${subreddit} | error=${
-                    error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ''}` : String(error)
-                }`
+                `request failed | subreddit=${subreddit} | error=${errDetail(error)}`
             )
             return []
         }
@@ -473,9 +462,7 @@ export class QueryCore {
             this.bot.logger.debug(
                 this.bot.isMobile,
                 'SEARCH-LOCAL-QUERY-LIST',
-                `read/parse failed | error=${
-                    error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ''}` : String(error)
-                }`
+                `read/parse failed | error=${errDetail(error)}`
             )
             return []
         }

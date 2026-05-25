@@ -2,6 +2,7 @@ import type { Page } from 'patchright'
 import * as OTPAuth from 'otpauth'
 import type { MicrosoftRewardsBot } from '../../../index'
 import { getErrorMessage, promptInput } from './LoginUtils'
+import { errMsg } from '../../../util/Utils'
 
 export class TotpLogin {
     private readonly textInputSelector =
@@ -39,11 +40,7 @@ export class TotpLogin {
             this.bot.logger.warn(this.bot.isMobile, 'LOGIN-TOTP', 'No TOTP input field found')
             return false
         } catch (error) {
-            this.bot.logger.warn(
-                this.bot.isMobile,
-                'LOGIN-TOTP',
-                `Failed to fill TOTP input: ${error instanceof Error ? error.message : String(error)}`
-            )
+            this.bot.logger.warn(this.bot.isMobile, 'LOGIN-TOTP', `Failed to fill TOTP input: ${errMsg(error)}`)
             return false
         }
     }
@@ -137,11 +134,7 @@ export class TotpLogin {
 
             throw new Error(`TOTP input failed after ${this.maxManualAttempts} attempts`)
         } catch (error) {
-            this.bot.logger.error(
-                this.bot.isMobile,
-                'LOGIN-TOTP',
-                `Error occurred: ${error instanceof Error ? error.message : String(error)}`
-            )
+            this.bot.logger.error(this.bot.isMobile, 'LOGIN-TOTP', `Error occurred: ${errMsg(error)}`)
             throw error
         }
     }

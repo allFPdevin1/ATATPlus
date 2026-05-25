@@ -1,5 +1,7 @@
 import type { Page } from 'patchright'
+
 import type { MicrosoftRewardsBot } from '../../../index'
+import { errMsg } from '../../../util/Utils'
 
 export class PasswordlessLogin {
     private readonly maxAttempts = 60
@@ -63,7 +65,7 @@ export class PasswordlessLogin {
             this.bot.logger.error(
                 this.bot.isMobile,
                 'LOGIN-PASSWORDLESS',
-                `Approval failed, an error occurred: ${error instanceof Error ? error.message : String(error)}`
+                `Approval failed, an error occurred: ${errMsg(error)}`
             )
             throw error
         }
@@ -101,11 +103,7 @@ export class PasswordlessLogin {
                 throw new Error('Passwordless authentication timeout')
             }
         } catch (error) {
-            this.bot.logger.error(
-                this.bot.isMobile,
-                'LOGIN-PASSWORDLESS',
-                `An error occurred: ${error instanceof Error ? error.message : String(error)}`
-            )
+            this.bot.logger.error(this.bot.isMobile, 'LOGIN-PASSWORDLESS', `An error occurred: ${errMsg(error)}`)
             throw error
         }
     }

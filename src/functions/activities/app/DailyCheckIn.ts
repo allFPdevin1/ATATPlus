@@ -1,6 +1,9 @@
 import type { AxiosRequestConfig } from 'axios'
+
 import { randomUUID } from 'crypto'
+
 import { Workers } from '../../Workers'
+import { errMsg } from '../../../util/Utils'
 
 export class DailyCheckIn extends Workers {
     private gainedPoints: number = 0
@@ -104,7 +107,7 @@ export class DailyCheckIn extends Workers {
             this.bot.logger.error(
                 this.bot.isMobile,
                 'DAILY-CHECK-IN',
-                `Error during Daily Check-In | message=${error instanceof Error ? error.message : String(error)}`
+                `Error during Daily Check-In | message=${errMsg(error)}`
             )
         }
     }
@@ -153,7 +156,7 @@ export class DailyCheckIn extends Workers {
             this.bot.logger.error(
                 this.bot.isMobile,
                 'DAILY-CHECK-IN',
-                `Error in submitDaily | type=${type} | message=${error instanceof Error ? error.message : String(error)}`
+                `Error in submitDaily | type=${type} | message=${errMsg(error)}`
             )
             throw error
         }

@@ -1,6 +1,7 @@
 import type { Page } from 'patchright'
 import type { MicrosoftRewardsBot } from '../../../index'
 import { getErrorMessage, getSubtitleMessage, promptInput } from './LoginUtils'
+import { errMsg } from '../../../util/Utils'
 
 export class CodeLogin {
     private readonly textInputSelector = '[data-testid="codeInputWrapper"]'
@@ -32,11 +33,7 @@ export class CodeLogin {
             this.bot.logger.warn(this.bot.isMobile, 'LOGIN-CODE', 'No code input field found')
             return false
         } catch (error) {
-            this.bot.logger.warn(
-                this.bot.isMobile,
-                'LOGIN-CODE',
-                `Failed to fill code input: ${error instanceof Error ? error.message : String(error)}`
-            )
+            this.bot.logger.warn(this.bot.isMobile, 'LOGIN-CODE', `Failed to fill code input: ${errMsg(error)}`)
             return false
         }
     }
@@ -118,11 +115,7 @@ export class CodeLogin {
 
             throw new Error(`Code input failed after ${this.maxManualAttempts} attempts`)
         } catch (error) {
-            this.bot.logger.error(
-                this.bot.isMobile,
-                'LOGIN-CODE',
-                `Error occurred: ${error instanceof Error ? error.message : String(error)}`
-            )
+            this.bot.logger.error(this.bot.isMobile, 'LOGIN-CODE', `Error occurred: ${errMsg(error)}`)
             throw error
         }
     }

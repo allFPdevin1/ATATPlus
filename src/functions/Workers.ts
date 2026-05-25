@@ -1,4 +1,5 @@
 import type { Page } from 'patchright'
+
 import type { MicrosoftRewardsBot } from '../index'
 import type {
     DashboardData,
@@ -8,20 +9,26 @@ import type {
     PurplePromotionalItem
 } from '../interface/DashboardData'
 import type { AppDashboardData } from '../interface/AppDashBoardData'
+import { ModernUIWorkers } from './ModernUIWorkers'
+import { errMsg } from '../util/Utils'
 
 export class Workers {
     public bot: MicrosoftRewardsBot
+    private modernWorkers?: ModernUIWorkers
 
     constructor(bot: MicrosoftRewardsBot) {
         this.bot = bot
     }
 
+    private getModernWorkers(): ModernUIWorkers {
+        this.modernWorkers ??= new ModernUIWorkers(this.bot)
+        return this.modernWorkers
+    }
+
     public async doDailySet(data: DashboardData, page: Page) {
         // Modern UI: use dedicated ModernUIWorkers
         if (this.bot.rewardsVersion === 'modern') {
-            const { ModernUIWorkers } = await import('./ModernUIWorkers')
-            const modernWorkers = new ModernUIWorkers(this.bot)
-            return modernWorkers.doDailySet(page)
+            return this.getModernWorkers().doDailySet(page)
         }
 
         // Legacy UI
@@ -45,9 +52,7 @@ export class Workers {
     public async doMorePromotions(data: DashboardData, page: Page) {
         // Modern UI: "More Promotions" is now "Keep earning" on /earn page
         if (this.bot.rewardsVersion === 'modern') {
-            const { ModernUIWorkers } = await import('./ModernUIWorkers')
-            const modernWorkers = new ModernUIWorkers(this.bot)
-            await modernWorkers.doKeepEarning(page)
+            await this.getModernWorkers().doKeepEarning(page)
             return
         }
 
@@ -180,7 +185,7 @@ export class Workers {
                 this.bot.logger.error(
                     this.bot.isMobile,
                     'SPECIAL-ACTIVITY',
-                    `Error while solving activity "${activity.title}" | message=${error instanceof Error ? error.message : String(error)}`
+                    `Error while solving activity "${activity.title}" | message=${errMsg(error)}`
                 )
             }
         }
@@ -319,7 +324,7 @@ export class Workers {
                 this.bot.logger.error(
                     this.bot.isMobile,
                     'ACTIVITY',
-                    `Error while solving activity "${activity.title}" | message=${error instanceof Error ? error.message : String(error)}`
+                    `Error while solving activity "${activity.title}" | message=${errMsg(error)}`
                 )
             }
         }

@@ -10,7 +10,7 @@ import BrowserFunc from './browser/BrowserFunc'
 import BrowserUtils from './browser/BrowserUtils'
 
 import { IpcLog, Logger } from './logging/Logger'
-import Utils from './util/Utils'
+import Utils, { errMsg } from './util/Utils'
 import { loadAccounts, loadConfig } from './util/Load'
 import { checkNodeVersion } from './util/Validator'
 
@@ -21,8 +21,8 @@ import { SearchManager } from './functions/SearchManager'
 
 import type { Account } from './interface/Account'
 import AxiosClient from './util/Axios'
-import { sendDiscord, sendDiscordSummary, flushDiscordQueue } from './logging/Discord'
-import { sendNtfy, flushNtfyQueue } from './logging/Ntfy'
+import { sendDiscord, sendDiscordSummary, sendDiscordAccountNotification, flushDiscordQueue } from './logging/Discord'
+import { sendNtfy, sendNtfyAccountNotification, flushNtfyQueue } from './logging/Ntfy'
 import type { DashboardData } from './interface/DashboardData'
 import type { AppDashboardData } from './interface/AppDashBoardData'
 
@@ -276,11 +276,7 @@ export class MicrosoftRewardsBot {
                 await flushAllWebhooks()
                 process.exit(0)
             } catch (error) {
-                this.logger.error(
-                    'main',
-                    'CLUSTER-WORKER-ERROR',
-                    `Worker task crash: ${error instanceof Error ? error.message : String(error)}`
-                )
+                this.logger.error('main', 'CLUSTER-WORKER-ERROR', `Worker task crash: ${errMsg(error)}`)
 
                 await flushAllWebhooks()
                 process.exit(1)
@@ -308,11 +304,7 @@ export class MicrosoftRewardsBot {
                 const result: { initialPoints: number; collectedPoints: number } | undefined = await this.Main(
                     account
                 ).catch(error => {
-                    void this.logger.error(
-                        true,
-                        'FLOW',
-                        `Mobile flow failed for ${accountEmail}: ${error instanceof Error ? error.message : String(error)}`
-                    )
+                    void this.logger.error(true, 'FLOW', `Mobile flow failed for ${accountEmail}: ${errMsg(error)}`)
                     return undefined
                 })
 
@@ -351,11 +343,7 @@ export class MicrosoftRewardsBot {
                 }
             } catch (error) {
                 const durationSeconds = ((Date.now() - accountStartTime) / 1000).toFixed(1)
-                this.logger.error(
-                    'main',
-                    'ACCOUNT-ERROR',
-                    `${accountEmail}: ${error instanceof Error ? error.message : String(error)}`
-                )
+                this.logger.error('main', 'ACCOUNT-ERROR', `${accountEmail}: ${errMsg(error)}`)
 
                 accountStats.push({
                     email: accountEmail,
@@ -364,8 +352,19 @@ export class MicrosoftRewardsBot {
                     collectedPoints: 0,
                     duration: parseFloat(durationSeconds),
                     success: false,
-                    error: error instanceof Error ? error.message : String(error)
+                    error: errMsg(error)
                 })
+            }
+
+            // Send per-account webhook notification
+            const lastStat = accountStats[accountStats.length - 1]
+            if (lastStat && cluster.isPrimary) {
+                if (this.config.webhook.discord?.enabled && this.config.webhook.discord.url) {
+                    await sendDiscordAccountNotification(this.config.webhook.discord.url, lastStat)
+                }
+                if (this.config.webhook.ntfy?.enabled && this.config.webhook.ntfy.url) {
+                    await sendNtfyAccountNotification(this.config.webhook.ntfy, lastStat)
+                }
             }
         }
 
@@ -420,11 +419,7 @@ export class MicrosoftRewardsBot {
                 try {
                     this.accessToken = await this.login.getAppAccessToken(this.mainMobilePage, accountEmail)
                 } catch (error) {
-                    this.logger.error(
-                        'main',
-                        'FLOW',
-                        `Failed to get mobile access token: ${error instanceof Error ? error.message : String(error)}`
-                    )
+                    this.logger.error('main', 'FLOW', `Failed to get mobile access token: ${errMsg(error)}`)
                 }
 
                 this.cookies.mobile = await initialContext.cookies()
@@ -476,7 +471,8 @@ export class MicrosoftRewardsBot {
                 // Legacy UI: run as usual in mobile phase
                 if (this.rewardsVersion !== 'modern') {
                     if (this.config.workers.doDailySet) await this.workers.doDailySet(data, this.mainMobilePage)
-                    if (this.config.workers.doMorePromotions) await this.workers.doMorePromotions(data, this.mainMobilePage)
+                    if (this.config.workers.doMorePromotions)
+                        await this.workers.doMorePromotions(data, this.mainMobilePage)
                 }
 
                 if (this.config.workers.doSpecialPromotions) await this.workers.doSpecialPromotions(data)

@@ -3,6 +3,7 @@ import type { AxiosRequestConfig } from 'axios'
 
 import type { MicrosoftRewardsBot } from '../index'
 import { saveSessionData } from '../util/Load'
+import { errMsg } from '../util/Utils'
 
 import type { Counters, DashboardData } from './../interface/DashboardData'
 import type { AppUserData } from '../interface/AppUserData'
@@ -10,11 +11,18 @@ import type { XboxDashboardData } from '../interface/XboxDashboardData'
 import type { AppEarnablePoints, BrowserEarnablePoints, MissingSearchPoints } from '../interface/Points'
 import type { AppDashboardData } from '../interface/AppDashBoardData'
 
+const DASHBOARD_CACHE_TTL_MS = 15_000
+
 export default class BrowserFunc {
     private bot: MicrosoftRewardsBot
+    private dashboardCache: { data: DashboardData; ts: number } | null = null
 
     constructor(bot: MicrosoftRewardsBot) {
         this.bot = bot
+    }
+
+    invalidateDashboardCache(): void {
+        this.dashboardCache = null
     }
 
     /**
@@ -69,7 +77,11 @@ export default class BrowserFunc {
      * Fetch user desktop dashboard data
      * @returns {DashboardData} Object of user bing rewards dashboard data
      */
-    async getDashboardData(): Promise<DashboardData> {
+    async getDashboardData(skipCache = false): Promise<DashboardData> {
+        if (!skipCache && this.dashboardCache && Date.now() - this.dashboardCache.ts < DASHBOARD_CACHE_TTL_MS) {
+            return this.dashboardCache.data
+        }
+
         try {
             const request: AxiosRequestConfig = {
                 url: 'https://rewards.bing.com/api/getuserinfo?type=1',
@@ -89,7 +101,9 @@ export default class BrowserFunc {
             const response = await this.bot.axios.request(request)
 
             if (response.data?.dashboard) {
-                return response.data.dashboard as DashboardData
+                const data = response.data.dashboard as DashboardData
+                this.dashboardCache = { data, ts: Date.now() }
+                return data
             }
             throw new Error('Dashboard data missing from API response')
         } catch (error) {
@@ -115,7 +129,9 @@ export default class BrowserFunc {
                     throw new Error('Dashboard script not found in HTML')
                 }
 
-                return JSON.parse(match[1]) as DashboardData
+                const data = JSON.parse(match[1]) as DashboardData
+                this.dashboardCache = { data, ts: Date.now() }
+                return data
             } catch (fallbackError) {
                 // If both fail
                 this.bot.logger.error(this.bot.isMobile, 'GET-DASHBOARD-DATA', 'Failed to get dashboard data')
@@ -146,7 +162,7 @@ export default class BrowserFunc {
             this.bot.logger.error(
                 this.bot.isMobile,
                 'GET-APP-DASHBOARD-DATA',
-                `Error fetching dashboard data: ${error instanceof Error ? error.message : String(error)}`
+                `Error fetching dashboard data: ${errMsg(error)}`
             )
             throw error
         }
@@ -174,7 +190,7 @@ export default class BrowserFunc {
             this.bot.logger.error(
                 this.bot.isMobile,
                 'GET-XBOX-DASHBOARD-DATA',
-                `Error fetching dashboard data: ${error instanceof Error ? error.message : String(error)}`
+                `Error fetching dashboard data: ${errMsg(error)}`
             )
             throw error
         }
@@ -184,7 +200,7 @@ export default class BrowserFunc {
      * Get search point counters
      */
     async getSearchPoints(): Promise<Counters> {
-        const dashboardData = await this.getDashboardData() // Always fetch newest data
+        const dashboardData = await this.getDashboardData(true)
 
         return dashboardData.userStatus.counters
     }
@@ -253,7 +269,7 @@ export default class BrowserFunc {
             this.bot.logger.error(
                 this.bot.isMobile,
                 'GET-BROWSER-EARNABLE-POINTS',
-                `An error occurred: ${error instanceof Error ? error.message : String(error)}`
+                `An error occurred: ${errMsg(error)}`
             )
             throw error
         }
@@ -313,11 +329,7 @@ export default class BrowserFunc {
                 totalEarnablePoints
             }
         } catch (error) {
-            this.bot.logger.error(
-                this.bot.isMobile,
-                'GET-APP-EARNABLE-POINTS',
-                `An error occurred: ${error instanceof Error ? error.message : String(error)}`
-            )
+            this.bot.logger.error(this.bot.isMobile, 'GET-APP-EARNABLE-POINTS', `An error occurred: ${errMsg(error)}`)
             throw error
         }
     }
@@ -331,11 +343,7 @@ export default class BrowserFunc {
 
             return data.userStatus.availablePoints
         } catch (error) {
-            this.bot.logger.error(
-                this.bot.isMobile,
-                'GET-CURRENT-POINTS',
-                `An error occurred: ${error instanceof Error ? error.message : String(error)}`
-            )
+            this.bot.logger.error(this.bot.isMobile, 'GET-CURRENT-POINTS', `An error occurred: ${errMsg(error)}`)
             throw error
         }
     }

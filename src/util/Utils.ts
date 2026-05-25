@@ -1,5 +1,16 @@
 import ms, { StringValue } from 'ms'
 
+export function errMsg(error: unknown): string {
+    return error instanceof Error ? error.message : String(error)
+}
+
+export function errDetail(error: unknown): string {
+    if (error instanceof Error) {
+        return `${error.name}: ${error.message}\n${error.stack ?? ''}`
+    }
+    return String(error)
+}
+
 export default class Util {
     async wait(time: number | string): Promise<void> {
         if (typeof time === 'string') {
