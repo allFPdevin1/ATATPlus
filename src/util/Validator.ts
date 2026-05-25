@@ -60,7 +60,9 @@ export const ConfigSchema = z.object({
         doDesktopSearch: z.boolean(),
         doMobileSearch: z.boolean(),
         doDailyCheckIn: z.boolean(),
-        doReadToEarn: z.boolean()
+        doReadToEarn: z.boolean(),
+        doStarSearch: z.boolean().default(true),
+        starSearchCount: z.number().int().min(1).max(50).default(5)
     }),
     searchOnBingLocalQueries: z.boolean(),
     globalTimeout: NumberOrString,

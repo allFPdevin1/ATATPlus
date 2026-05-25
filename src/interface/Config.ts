@@ -45,6 +45,8 @@ export interface ConfigWorkers {
     doMobileSearch: boolean
     doDailyCheckIn: boolean
     doReadToEarn: boolean
+    doStarSearch: boolean
+    starSearchCount: number
 }
 
 // Webhooks
